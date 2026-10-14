@@ -7,7 +7,8 @@ namespace MaintenanceSystem.Tests;
 public class WorkOrderServiceTests
 {
     private static WorkOrderService CreateService(
-        out MaintenanceRequestService requestService)
+        out MaintenanceRequestService requestService,
+        out SparePartService sparePartService)
     {
         EquipmentService equipmentService = new EquipmentService();
 
@@ -24,21 +25,26 @@ public class WorkOrderServiceTests
         requestService.CreateRequest(
             1, "Abnormal noise detected");
 
-        return new WorkOrderService(requestService);
+        sparePartService = new SparePartService();
+
+        sparePartService.AddSparePart(new SparePart(
+            1, "BRG-001", "Ball Bearing",
+            5, 2, 12.50m));
+
+        return new WorkOrderService(
+            requestService,
+            sparePartService);
     }
 
     [Fact]
     public void CreateWorkOrder_ValidRequest_CreatesWorkOrder()
     {
-        // Arrange
         WorkOrderService service = CreateService(
-            out MaintenanceRequestService requestService);
+            out _, out _);
 
-        // Act
         WorkOrder workOrder = service.CreateWorkOrder(
             1, "Inspect spindle and check bearing wear");
 
-        // Assert
         Assert.Equal(1, workOrder.Id);
         Assert.Equal(1, workOrder.MaintenanceRequestId);
         Assert.Equal(
@@ -52,11 +58,9 @@ public class WorkOrderServiceTests
     [Fact]
     public void CreateWorkOrder_UnknownRequest_ThrowsException()
     {
-        // Arrange
         WorkOrderService service = CreateService(
-            out MaintenanceRequestService requestService);
+            out _, out _);
 
-        // Act and Assert
         Assert.Throws<InvalidOperationException>(() =>
             service.CreateWorkOrder(99, "Investigate unknown issue"));
     }
@@ -67,16 +71,15 @@ public class WorkOrderServiceTests
     public void CreateWorkOrder_IneligibleRequest_ThrowsException(
         MaintenanceRequestStatus status)
     {
-        // Arrange
         WorkOrderService service = CreateService(
-            out MaintenanceRequestService requestService);
+            out MaintenanceRequestService requestService,
+            out _);
 
         MaintenanceRequest request =
             requestService.GetRequestById(1)!;
 
         request.Status = status;
 
-        // Act and Assert
         Assert.Throws<InvalidOperationException>(() =>
             service.CreateWorkOrder(
                 request.Id, "Inspect equipment"));
@@ -85,18 +88,15 @@ public class WorkOrderServiceTests
     [Fact]
     public void UpdateWorkOrderStatus_ValidTransition_UpdatesStatus()
     {
-        // Arrange
         WorkOrderService service = CreateService(
-            out MaintenanceRequestService requestService);
+            out _, out _);
 
         WorkOrder workOrder = service.CreateWorkOrder(
             1, "Inspect spindle");
 
-        // Act
         bool updated = service.UpdateWorkOrderStatus(
             workOrder.Id, WorkOrderStatus.InProgress);
 
-        // Assert
         Assert.True(updated);
         Assert.Equal(WorkOrderStatus.InProgress, workOrder.Status);
         Assert.Null(workOrder.CompletedAt);
@@ -105,14 +105,12 @@ public class WorkOrderServiceTests
     [Fact]
     public void UpdateWorkOrderStatus_InvalidTransition_ThrowsException()
     {
-        // Arrange
         WorkOrderService service = CreateService(
-            out MaintenanceRequestService requestService);
+            out _, out _);
 
         WorkOrder workOrder = service.CreateWorkOrder(
             1, "Inspect spindle");
 
-        // Act and Assert
         Assert.Throws<InvalidOperationException>(() =>
             service.UpdateWorkOrderStatus(
                 workOrder.Id, WorkOrderStatus.Completed));
@@ -124,9 +122,8 @@ public class WorkOrderServiceTests
     [Fact]
     public void UpdateWorkOrderStatus_Completed_SetsCompletedAt()
     {
-        // Arrange
         WorkOrderService service = CreateService(
-            out MaintenanceRequestService requestService);
+            out _, out _);
 
         WorkOrder workOrder = service.CreateWorkOrder(
             1, "Inspect spindle");
@@ -134,11 +131,9 @@ public class WorkOrderServiceTests
         service.UpdateWorkOrderStatus(
             workOrder.Id, WorkOrderStatus.InProgress);
 
-        // Act
         bool updated = service.UpdateWorkOrderStatus(
             workOrder.Id, WorkOrderStatus.Completed);
 
-        // Assert
         Assert.True(updated);
         Assert.Equal(WorkOrderStatus.Completed, workOrder.Status);
         Assert.NotNull(workOrder.CompletedAt);
@@ -147,17 +142,140 @@ public class WorkOrderServiceTests
     [Fact]
     public void AssignTechnician_EmptyName_ThrowsException()
     {
-        // Arrange
         WorkOrderService service = CreateService(
-            out MaintenanceRequestService requestService);
+            out _, out _);
 
         WorkOrder workOrder = service.CreateWorkOrder(
             1, "Inspect spindle");
 
-        // Act and Assert
         Assert.Throws<ArgumentException>(() =>
             service.AssignTechnician(workOrder.Id, "   "));
 
         Assert.Null(workOrder.AssignedTo);
+    }
+
+    [Fact]
+    public void IssuePartToWorkOrder_InProgressOrder_ReducesStockAndRecordsUsage()
+    {
+        WorkOrderService service = CreateService(
+            out _, out SparePartService sparePartService);
+
+        WorkOrder workOrder = service.CreateWorkOrder(
+            1, "Repair spindle");
+
+        service.UpdateWorkOrderStatus(
+            workOrder.Id, WorkOrderStatus.InProgress);
+
+        WorkOrderPart usage = service.IssuePartToWorkOrder(
+            workOrder.Id, 1, 2);
+
+        Assert.Equal(workOrder.Id, usage.WorkOrderId);
+        Assert.Equal(1, usage.SparePartId);
+        Assert.Equal(2, usage.QuantityUsed);
+
+        Assert.Equal(
+            3,
+            sparePartService.GetSparePartById(1)!.QuantityInStock);
+
+        IReadOnlyList<WorkOrderPart> usages =
+            service.GetPartsUsedByWorkOrder(workOrder.Id);
+
+        Assert.Single(usages);
+        Assert.Equal(2, usages[0].QuantityUsed);
+    }
+
+    [Fact]
+    public void IssuePartToWorkOrder_InsufficientStock_ThrowsAndPreservesStock()
+    {
+        WorkOrderService service = CreateService(
+            out _, out SparePartService sparePartService);
+
+        WorkOrder workOrder = service.CreateWorkOrder(
+            1, "Repair spindle");
+
+        service.UpdateWorkOrderStatus(
+            workOrder.Id, WorkOrderStatus.InProgress);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            service.IssuePartToWorkOrder(workOrder.Id, 1, 6));
+
+        Assert.Equal(
+            5,
+            sparePartService.GetSparePartById(1)!.QuantityInStock);
+
+        Assert.Empty(service.GetPartsUsedByWorkOrder(workOrder.Id));
+    }
+
+    [Theory]
+    [InlineData(WorkOrderStatus.Open)]
+    [InlineData(WorkOrderStatus.Completed)]
+    [InlineData(WorkOrderStatus.Cancelled)]
+    public void IssuePartToWorkOrder_OrderNotInProgress_ThrowsAndPreservesStock(
+        WorkOrderStatus status)
+    {
+        WorkOrderService service = CreateService(
+            out _, out SparePartService sparePartService);
+
+        WorkOrder workOrder = service.CreateWorkOrder(
+            1, "Repair spindle");
+
+        if (status == WorkOrderStatus.Completed)
+        {
+            service.UpdateWorkOrderStatus(
+                workOrder.Id, WorkOrderStatus.InProgress);
+
+            service.UpdateWorkOrderStatus(
+                workOrder.Id, WorkOrderStatus.Completed);
+        }
+        else if (status == WorkOrderStatus.Cancelled)
+        {
+            service.UpdateWorkOrderStatus(
+                workOrder.Id, WorkOrderStatus.Cancelled);
+        }
+
+        Assert.Throws<InvalidOperationException>(() =>
+            service.IssuePartToWorkOrder(workOrder.Id, 1, 1));
+
+        Assert.Equal(
+            5,
+            sparePartService.GetSparePartById(1)!.QuantityInStock);
+
+        Assert.Empty(service.GetPartsUsedByWorkOrder(workOrder.Id));
+    }
+
+    [Fact]
+    public void IssuePartToWorkOrder_UnknownWorkOrder_ThrowsAndPreservesStock()
+    {
+        WorkOrderService service = CreateService(
+            out _, out SparePartService sparePartService);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            service.IssuePartToWorkOrder(99, 1, 1));
+
+        Assert.Equal(
+            5,
+            sparePartService.GetSparePartById(1)!.QuantityInStock);
+    }
+
+    [Fact]
+    public void IssuePartToWorkOrder_UnknownSparePart_ThrowsAndPreservesStock()
+    {
+        WorkOrderService service = CreateService(
+            out _, out SparePartService sparePartService);
+
+        WorkOrder workOrder = service.CreateWorkOrder(
+            1, "Repair spindle");
+
+        service.UpdateWorkOrderStatus(
+            workOrder.Id, WorkOrderStatus.InProgress);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            service.IssuePartToWorkOrder(workOrder.Id, 99, 1));
+
+        Assert.Equal(
+            5,
+            sparePartService.GetSparePartById(1)!.QuantityInStock);
+
+        Assert.Empty(service.GetPartsUsedByWorkOrder(workOrder.Id));
     }
 }

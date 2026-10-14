@@ -8,11 +8,14 @@ public class WorkOrderService
     private readonly MaintenanceRequestService _requestService;
 
     private int _nextWorkOrderId = 1;
-
+    private readonly List<WorkOrderPart> _workOrderParts = new();
+    private readonly SparePartService _sparePartService;
     public WorkOrderService(
-        MaintenanceRequestService requestService)
+    MaintenanceRequestService requestService,
+    SparePartService sparePartService)
     {
         _requestService = requestService;
+        _sparePartService = sparePartService;
     }
 
     public WorkOrder CreateWorkOrder(
@@ -130,5 +133,60 @@ public class WorkOrderService
 
         workOrder.SetStatus(newStatus);
         return true;
+    }
+    public WorkOrderPart IssuePartToWorkOrder(
+        int workOrderId,
+        int sparePartId,
+        int quantity)
+    {
+        WorkOrder? workOrder = GetWorkOrderById(workOrderId);
+
+        if (workOrder is null)
+        {
+            throw new InvalidOperationException(
+                $"Work order with ID {workOrderId} does not exist.");
+        }
+
+        if (workOrder.Status != WorkOrderStatus.InProgress)
+        {
+            throw new InvalidOperationException(
+                "Parts can only be issued to an in-progress work order.");
+        }
+
+        SparePart? sparePart =
+            _sparePartService.GetSparePartById(sparePartId);
+
+        if (sparePart is null)
+        {
+            throw new InvalidOperationException(
+                $"Spare part with ID {sparePartId} does not exist.");
+        }
+
+        // Validate stock and reduce inventory.
+        bool issued = _sparePartService.IssuePart(sparePartId, quantity);
+
+        if (!issued)
+        {
+            throw new InvalidOperationException(
+                $"Could not issue spare part {sparePartId}.");
+        }
+
+        WorkOrderPart usage = new WorkOrderPart(
+            workOrderId,
+            sparePartId,
+            quantity);
+
+        _workOrderParts.Add(usage);
+
+        return usage;
+    }
+
+    public IReadOnlyList<WorkOrderPart> GetPartsUsedByWorkOrder(
+        int workOrderId)
+    {
+        return _workOrderParts
+            .Where(part => part.WorkOrderId == workOrderId)
+            .ToList()
+            .AsReadOnly();
     }
 }

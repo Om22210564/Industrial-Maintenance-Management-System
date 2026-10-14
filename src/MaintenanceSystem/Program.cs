@@ -70,6 +70,8 @@ catch (InvalidOperationException ex)
 MaintenanceRequestService requestService =
     new MaintenanceRequestService(service);
 
+SparePartService sparePartService = new SparePartService();
+
 // Create a request for the CNC machine
 Console.WriteLine("\nCreate maintenance requests:");
 
@@ -149,7 +151,7 @@ Console.WriteLine(missingRequest is null
 
 // Create the work order service
 WorkOrderService workOrderService =
-    new WorkOrderService(requestService);
+    new WorkOrderService(requestService,sparePartService);
 
 // Create work orders for existing maintenance requests
 Console.WriteLine("\nCreate work orders:");
@@ -204,6 +206,26 @@ Console.WriteLine(started
     ? $"Work order {cncWorkOrder.Id} is now InProgress."
     : "Work order not found.");
 
+// Register spare parts
+sparePartService.AddSparePart(new SparePart(
+    1, "BRG-001", "Ball Bearing",
+    5, 2, 12.50m));
+
+// Issue two bearings to the CNC work order
+WorkOrderPart usage = workOrderService.IssuePartToWorkOrder(
+    cncWorkOrder.Id,
+    1,
+    2);
+
+Console.WriteLine(
+    $"Issued {usage.QuantityUsed} bearings to work order " +
+    $"{usage.WorkOrderId}.");
+
+Console.WriteLine(
+    $"Remaining stock: " +
+    $"{sparePartService.GetSparePartById(1)!.QuantityInStock}");
+
+    
 // List all work orders
 Console.WriteLine("\nAll Work Orders");
 Console.WriteLine("---------------");
