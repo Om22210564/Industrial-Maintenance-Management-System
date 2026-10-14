@@ -147,6 +147,111 @@ Console.WriteLine(missingRequest is null
     : $"Found: {missingRequest.Description}");
 
 
+// Create the work order service
+WorkOrderService workOrderService =
+    new WorkOrderService(requestService);
+
+// Create work orders for existing maintenance requests
+Console.WriteLine("\nCreate work orders:");
+
+WorkOrder cncWorkOrder = workOrderService.CreateWorkOrder(
+    cncRequest.Id,
+    "Inspect spindle and check bearing wear");
+
+WorkOrder pumpWorkOrder = workOrderService.CreateWorkOrder(
+    pumpRequest.Id,
+    "Inspect seals and repair water leakage");
+
+Console.WriteLine(
+    $"Created work order {cncWorkOrder.Id}: {cncWorkOrder.Description}");
+
+Console.WriteLine(
+    $"Created work order {pumpWorkOrder.Id}: {pumpWorkOrder.Description}");
+
+// Try creating a work order for an unknown request
+Console.WriteLine("\nTry creating work order for request ID 99:");
+
+try
+{
+    workOrderService.CreateWorkOrder(
+        99,
+        "Investigate unknown request");
+}
+catch (InvalidOperationException ex)
+{
+    Console.WriteLine($"Rejected: {ex.Message}");
+}
+
+// Assign a technician
+Console.WriteLine("\nAssign technician:");
+
+bool assigned = workOrderService.AssignTechnician(
+    cncWorkOrder.Id,
+    "John Smith");
+
+Console.WriteLine(assigned
+    ? $"Assigned {cncWorkOrder.AssignedTo} to work order {cncWorkOrder.Id}."
+    : "Work order not found.");
+
+// Start the work
+Console.WriteLine("\nStart work order:");
+
+bool started = workOrderService.UpdateWorkOrderStatus(
+    cncWorkOrder.Id,
+    WorkOrderStatus.InProgress);
+
+Console.WriteLine(started
+    ? $"Work order {cncWorkOrder.Id} is now InProgress."
+    : "Work order not found.");
+
+// List all work orders
+Console.WriteLine("\nAll Work Orders");
+Console.WriteLine("---------------");
+
+foreach (WorkOrder workOrder in workOrderService.GetAllWorkOrders())
+{
+    Console.WriteLine(
+        $"{workOrder.Id} | Request {workOrder.MaintenanceRequestId} | " +
+        $"{workOrder.Description} | {workOrder.Status} | " +
+        $"{workOrder.AssignedTo ?? "Unassigned"}");
+}
+
+// Filter by status
+Console.WriteLine("\nOpen Work Orders:");
+
+foreach (WorkOrder workOrder in
+    workOrderService.GetWorkOrdersByStatus(WorkOrderStatus.Open))
+{
+    Console.WriteLine(
+        $"{workOrder.Id} | {workOrder.Description}");
+}
+
+// Complete the first work order
+Console.WriteLine("\nComplete work order:");
+
+bool completed = workOrderService.UpdateWorkOrderStatus(
+    cncWorkOrder.Id,
+    WorkOrderStatus.Completed);
+
+Console.WriteLine(completed
+    ? $"Completed at: {cncWorkOrder.CompletedAt}"
+    : "Work order not found.");
+
+// Try reopening the completed work order
+Console.WriteLine("\nTry reopening completed work order:");
+
+try
+{
+    workOrderService.UpdateWorkOrderStatus(
+        cncWorkOrder.Id,
+        WorkOrderStatus.Open);
+}
+catch (InvalidOperationException ex)
+{
+    Console.WriteLine($"Rejected: {ex.Message}");
+}
+
+
 // Remove existing equipment
 Console.WriteLine("\nRemove ID 2:");
 Console.WriteLine(service.RemoveEquipment(2)
