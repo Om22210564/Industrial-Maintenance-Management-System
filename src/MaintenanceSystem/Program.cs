@@ -65,6 +65,88 @@ catch (InvalidOperationException ex)
     Console.WriteLine($"Rejected: {ex.Message}");
 }
 
+
+// Create the maintenance request service
+MaintenanceRequestService requestService =
+    new MaintenanceRequestService(service);
+
+// Create a request for the CNC machine
+Console.WriteLine("\nCreate maintenance requests:");
+
+MaintenanceRequest cncRequest = requestService.CreateRequest(
+    cnc.Id,
+    "Unusual vibration detected");
+
+Console.WriteLine(
+    $"Created request {cncRequest.Id} for {cnc.Name}");
+
+// Create a request for the water pump
+MaintenanceRequest pumpRequest = requestService.CreateRequest(
+    pump.Id,
+    "Water leakage");
+
+Console.WriteLine(
+    $"Created request {pumpRequest.Id} for {pump.Name}");
+
+// Try creating a request for nonexistent equipment
+Console.WriteLine("\nTry creating request for equipment ID 99:");
+
+try
+{
+    requestService.CreateRequest(
+        99,
+        "Unknown equipment issue");
+}
+catch (InvalidOperationException ex)
+{
+    Console.WriteLine($"Rejected: {ex.Message}");
+}
+
+// List all maintenance requests
+Console.WriteLine("\nAll Maintenance Requests");
+Console.WriteLine("------------------------");
+
+foreach (MaintenanceRequest request in
+    requestService.GetAllRequests())
+{
+    Console.WriteLine(
+        $"{request.Id} | Equipment {request.EquipmentId} | " +
+        $"{request.Description} | {request.Status} | " +
+        $"{request.CreatedAt}");
+}
+
+// Filter requests by equipment ID
+Console.WriteLine("\nRequests for equipment ID 1:");
+
+foreach (MaintenanceRequest request in
+    requestService.GetRequestsByEquipmentId(1))
+{
+    Console.WriteLine(
+        $"{request.Id} | {request.Description}");
+}
+
+// Change request status
+Console.WriteLine("\nUpdate request status:");
+
+bool updated = requestService.UpdateRequestStatus(
+    cncRequest.Id,
+    MaintenanceRequestStatus.InProgress);
+
+Console.WriteLine(updated
+    ? $"Request {cncRequest.Id} updated to InProgress."
+    : "Request not found.");
+
+// Look up an unknown request
+Console.WriteLine("\nSearch for request ID 99:");
+
+MaintenanceRequest? missingRequest =
+    requestService.GetRequestById(99);
+
+Console.WriteLine(missingRequest is null
+    ? "Request not found."
+    : $"Found: {missingRequest.Description}");
+
+
 // Remove existing equipment
 Console.WriteLine("\nRemove ID 2:");
 Console.WriteLine(service.RemoveEquipment(2)
