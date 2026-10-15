@@ -8,7 +8,9 @@ public class Equipment
     public string? EquipmentCode {get;private set;}
     public string? Location {get;set;}
     public EquipmentStatus Status{get;set;}
-
+    private Equipment()
+    {
+    }
     public Equipment(int id, string name, string equipmentcode,string location ,EquipmentStatus status)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -26,6 +28,6 @@ public class Equipment
         Status = status;
         
     }
-
+    
 }
 
