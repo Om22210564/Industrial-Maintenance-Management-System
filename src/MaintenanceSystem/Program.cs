@@ -28,9 +28,21 @@ Equipment conveyor = new Equipment(
     "Factory Floor C", EquipmentStatus.Operational);
 
 // Add equipment
-service.AddEquipment(cnc);
-service.AddEquipment(pump);
-service.AddEquipment(conveyor);
+// Add equipment only if it doesn't already exist
+if (service.GetEquipmentById(cnc.Id) is null)
+{
+    service.AddEquipment(cnc);
+}
+
+if (service.GetEquipmentById(pump.Id) is null)
+{
+    service.AddEquipment(pump);
+}
+
+if (service.GetEquipmentById(conveyor.Id) is null)
+{
+    service.AddEquipment(conveyor);
+}
 
 Console.WriteLine("All Equipment");
 Console.WriteLine("-------------");
@@ -163,7 +175,10 @@ Console.WriteLine(missingRequest is null
 
 // Create the work order service
 WorkOrderService workOrderService =
-    new WorkOrderService(requestService,sparePartService);
+    new WorkOrderService(
+        dbContext,
+        requestService,
+        sparePartService);
 
 // Create work orders for existing maintenance requests
 Console.WriteLine("\nCreate work orders:");
@@ -288,9 +303,18 @@ catch (InvalidOperationException ex)
 
 // Remove existing equipment
 Console.WriteLine("\nRemove ID 2:");
-Console.WriteLine(service.RemoveEquipment(2)
-    ? "Equipment removed."
-    : "Equipment not found.");
+// Console.WriteLine("\nRemove ID 2:");
+
+try
+{
+    Console.WriteLine(service.RemoveEquipment(2)
+        ? "Equipment removed."
+        : "Equipment not found.");
+}
+catch (InvalidOperationException ex)
+{
+    Console.WriteLine($"Rejected: {ex.Message}");
+}
 
 // Remove nonexistent equipment
 Console.WriteLine("\nRemove ID 99:");

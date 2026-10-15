@@ -65,4 +65,8 @@ public class WorkOrder
             CompletedAt = DateTime.Now;
         }
     }
+    private WorkOrder()
+    {
+        Description = string.Empty;
+    }
 }

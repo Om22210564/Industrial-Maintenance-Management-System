@@ -15,6 +15,8 @@ public class MaintenanceDbContext : DbContext
     public DbSet<MaintenanceRequest> MaintenanceRequests =>
     Set<MaintenanceRequest>();
 
+    public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -61,6 +63,32 @@ public class MaintenanceDbContext : DbContext
             entity.HasOne<Equipment>()
                 .WithMany()
                 .HasForeignKey(request => request.EquipmentId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<WorkOrder>(entity =>
+        {
+            entity.HasKey(workOrder => workOrder.Id);
+
+            entity.Property(workOrder => workOrder.Id)
+                .ValueGeneratedNever();
+
+            entity.Property(workOrder => workOrder.Description)
+                .IsRequired()
+                .HasMaxLength(1000);
+
+            entity.Property(workOrder => workOrder.AssignedTo)
+                .HasMaxLength(200);
+
+            entity.Property(workOrder => workOrder.CreatedAt)
+                .IsRequired();
+
+            entity.Property(workOrder => workOrder.Status)
+                .IsRequired();
+
+            entity.HasOne<MaintenanceRequest>()
+                .WithMany()
+                .HasForeignKey(workOrder => workOrder.MaintenanceRequestId)
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Restrict);
         });

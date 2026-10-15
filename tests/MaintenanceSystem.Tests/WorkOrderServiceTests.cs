@@ -51,6 +51,7 @@ public class WorkOrderServiceTests : IDisposable
             5, 2, 12.50m));
 
         return new WorkOrderService(
+            _dbContext,
             requestService,
             sparePartService);
     }

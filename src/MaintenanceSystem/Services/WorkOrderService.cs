@@ -1,19 +1,25 @@
+
+using MaintenanceSystem.Data;
 using MaintenanceSystem.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace MaintenanceSystem.Services;
 
 public class WorkOrderService
 {
-    private readonly List<WorkOrder> _workOrders = new();
+    private readonly MaintenanceDbContext _context;
     private readonly MaintenanceRequestService _requestService;
-
-    private int _nextWorkOrderId = 1;
-    private readonly List<WorkOrderPart> _workOrderParts = new();
     private readonly SparePartService _sparePartService;
+
+    // Part usage remains in memory for now.
+    private readonly List<WorkOrderPart> _workOrderParts = new();
+
     public WorkOrderService(
-    MaintenanceRequestService requestService,
-    SparePartService sparePartService)
+        MaintenanceDbContext context,
+        MaintenanceRequestService requestService,
+        SparePartService sparePartService)
     {
+        _context = context;
         _requestService = requestService;
         _sparePartService = sparePartService;
     }
@@ -38,33 +44,43 @@ public class WorkOrderService
                 $"Maintenance request {maintenanceRequestId} is not eligible for work.");
         }
 
+        int nextWorkOrderId = _context.WorkOrders.Any()
+            ? _context.WorkOrders.Max(order => order.Id) + 1
+            : 1;
+
         WorkOrder workOrder = new WorkOrder(
-            _nextWorkOrderId,
+            nextWorkOrderId,
             maintenanceRequestId,
             description);
 
-        _workOrders.Add(workOrder);
-        _nextWorkOrderId++;
+        _context.WorkOrders.Add(workOrder);
+        _context.SaveChanges();
 
         return workOrder;
     }
 
     public IReadOnlyList<WorkOrder> GetAllWorkOrders()
     {
-        return _workOrders.AsReadOnly();
+        return _context.WorkOrders
+            .AsNoTracking()
+            .OrderBy(order => order.Id)
+            .ToList()
+            .AsReadOnly();
     }
 
     public WorkOrder? GetWorkOrderById(int id)
     {
-        return _workOrders.FirstOrDefault(
-            workOrder => workOrder.Id == id);
+        return _context.WorkOrders
+            .FirstOrDefault(order => order.Id == id);
     }
 
     public IReadOnlyList<WorkOrder> GetWorkOrdersByStatus(
         WorkOrderStatus status)
     {
-        return _workOrders
-            .Where(workOrder => workOrder.Status == status)
+        return _context.WorkOrders
+            .AsNoTracking()
+            .Where(order => order.Status == status)
+            .OrderBy(order => order.Id)
             .ToList()
             .AsReadOnly();
     }
@@ -95,6 +111,8 @@ public class WorkOrderService
         }
 
         workOrder.SetTechnician(technicianName.Trim());
+        _context.SaveChanges();
+
         return true;
     }
 
@@ -132,8 +150,11 @@ public class WorkOrderService
         }
 
         workOrder.SetStatus(newStatus);
+        _context.SaveChanges();
+
         return true;
     }
+
     public WorkOrderPart IssuePartToWorkOrder(
         int workOrderId,
         int sparePartId,
@@ -162,8 +183,8 @@ public class WorkOrderService
                 $"Spare part with ID {sparePartId} does not exist.");
         }
 
-        // Validate stock and reduce inventory.
-        bool issued = _sparePartService.IssuePart(sparePartId, quantity);
+        bool issued =
+            _sparePartService.IssuePart(sparePartId, quantity);
 
         if (!issued)
         {

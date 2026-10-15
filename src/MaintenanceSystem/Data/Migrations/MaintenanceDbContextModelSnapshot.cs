@@ -70,7 +70,40 @@ namespace MaintenanceSystem.Data.Migrations
 
                     b.HasIndex("EquipmentId");
 
-                    b.ToTable("MaintenanceRequest");
+                    b.ToTable("MaintenanceRequests");
+                });
+
+            modelBuilder.Entity("MaintenanceSystem.Models.WorkOrder", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AssignedTo")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("MaintenanceRequestId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaintenanceRequestId");
+
+                    b.ToTable("WorkOrders");
                 });
 
             modelBuilder.Entity("MaintenanceSystem.Models.MaintenanceRequest", b =>
@@ -78,6 +111,15 @@ namespace MaintenanceSystem.Data.Migrations
                     b.HasOne("MaintenanceSystem.Models.Equipment", null)
                         .WithMany()
                         .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MaintenanceSystem.Models.WorkOrder", b =>
+                {
+                    b.HasOne("MaintenanceSystem.Models.MaintenanceRequest", null)
+                        .WithMany()
+                        .HasForeignKey("MaintenanceRequestId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

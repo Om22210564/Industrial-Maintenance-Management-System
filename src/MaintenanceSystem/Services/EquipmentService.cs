@@ -62,19 +62,31 @@ public class EquipmentService
 
     //     return true;
     // }
+    
     public bool RemoveEquipment(int id)
+{
+    Equipment? equipment = _context.Equipment
+        .FirstOrDefault(item => item.Id == id);
+
+    if (equipment is null)
     {
-        Equipment? equipment = _context.Equipment
-            .FirstOrDefault(item => item.Id == id);
-
-        if (equipment is null)
-        {
-            return false;
-        }
-
-        _context.Equipment.Remove(equipment);
-        _context.SaveChanges();
-
-        return true;
+        return false;
     }
+
+    // Prevent deletion if maintenance requests reference this equipment
+    bool hasMaintenanceRequests = _context.MaintenanceRequests
+        .Any(request => request.EquipmentId == id);
+
+    if (hasMaintenanceRequests)
+    {
+        throw new InvalidOperationException(
+            $"Equipment with ID {id} cannot be removed because it has related maintenance requests.");
+    }
+
+    _context.Equipment.Remove(equipment);
+    _context.SaveChanges();
+
+    return true;
+}
+
 }
