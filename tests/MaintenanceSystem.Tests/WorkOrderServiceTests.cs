@@ -1,16 +1,35 @@
 using MaintenanceSystem.Models;
 using MaintenanceSystem.Services;
 using Xunit;
-
+using MaintenanceSystem.Data;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 namespace MaintenanceSystem.Tests;
 
-public class WorkOrderServiceTests
+public class WorkOrderServiceTests : IDisposable
 {
-    private static WorkOrderService CreateService(
+    private readonly SqliteConnection _connection;
+    private readonly MaintenanceDbContext _dbContext;
+
+    public WorkOrderServiceTests()
+    {
+        _connection = new SqliteConnection("Data Source=:memory:");
+        _connection.Open();
+
+        var options = new DbContextOptionsBuilder<MaintenanceDbContext>()
+            .UseSqlite(_connection)
+            .Options;
+
+        _dbContext = new MaintenanceDbContext(options);
+        _dbContext.Database.EnsureCreated();
+    }
+
+    private WorkOrderService CreateService(
         out MaintenanceRequestService requestService,
         out SparePartService sparePartService)
     {
-        EquipmentService equipmentService = new EquipmentService();
+        EquipmentService equipmentService =
+            new EquipmentService(_dbContext);
 
         equipmentService.AddEquipment(new Equipment(
             1, "CNC Machine", "CNC-001",
@@ -34,6 +53,12 @@ public class WorkOrderServiceTests
         return new WorkOrderService(
             requestService,
             sparePartService);
+    }
+
+    public void Dispose()
+    {
+        _dbContext.Dispose();
+        _connection.Dispose();
     }
 
     [Fact]

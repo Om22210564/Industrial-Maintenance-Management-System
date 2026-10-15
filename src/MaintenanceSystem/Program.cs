@@ -1,7 +1,19 @@
-﻿using MaintenanceSystem.Models;
+﻿using MaintenanceSystem.Data;
+using MaintenanceSystem.Models;
 using MaintenanceSystem.Services;
+using Microsoft.EntityFrameworkCore;
 
-EquipmentService service = new EquipmentService();
+DbContextOptions<MaintenanceDbContext> options =
+    new DbContextOptionsBuilder<MaintenanceDbContext>()
+        .UseSqlite("Data Source=maintenance.db")
+        .Options;
+
+using MaintenanceDbContext dbContext =
+    new MaintenanceDbContext(options);
+
+dbContext.Database.Migrate();
+
+EquipmentService service = new EquipmentService(dbContext);
 
 Equipment cnc = new Equipment(
     1, "CNC Machine", "CNC-001",

@@ -1,14 +1,34 @@
-using MaintenanceSystem.Models;
+using MaintenanceSystem.Data;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using MaintenanceSystem.Services;
+using MaintenanceSystem.Models;
 using Xunit;
 
 namespace MaintenanceSystem.Tests;
 
-public class MaintenanceRequestServiceTests
+public class MaintenanceRequestServiceTests : IDisposable
 {
-    private static MaintenanceRequestService CreateService()
+    private readonly SqliteConnection _connection;
+    private readonly MaintenanceDbContext _dbContext;
+
+    public MaintenanceRequestServiceTests()
     {
-        EquipmentService equipmentService = new EquipmentService();
+        _connection = new SqliteConnection("Data Source=:memory:");
+        _connection.Open();
+
+        var options = new DbContextOptionsBuilder<MaintenanceDbContext>()
+            .UseSqlite(_connection)
+            .Options;
+
+        _dbContext = new MaintenanceDbContext(options);
+        _dbContext.Database.EnsureCreated();
+    }
+
+    private MaintenanceRequestService CreateService()
+    {
+        EquipmentService equipmentService =
+            new EquipmentService(_dbContext);
 
         equipmentService.AddEquipment(new Equipment(
             1, "CNC Machine", "CNC-001",
@@ -20,6 +40,13 @@ public class MaintenanceRequestServiceTests
 
         return new MaintenanceRequestService(equipmentService);
     }
+
+    public void Dispose()
+    {
+        _dbContext.Dispose();
+        _connection.Dispose();
+    }
+
 
     [Fact]
     public void CreateRequest_ExistingEquipment_CreatesOpenRequest()

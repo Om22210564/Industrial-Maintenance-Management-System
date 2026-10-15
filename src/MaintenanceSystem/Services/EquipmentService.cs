@@ -1,50 +1,80 @@
-using System.Linq;
+
+using MaintenanceSystem.Data;
 using MaintenanceSystem.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace MaintenanceSystem.Services;
 
 public class EquipmentService
 {
-    private readonly List<Equipment> _equipment = new();
+    private readonly MaintenanceDbContext _context;
+
+    public EquipmentService(MaintenanceDbContext context)
+    {
+        _context = context;
+    }
 
     public void AddEquipment(Equipment equipment)
     {
-        if (_equipment.Any(item => item.Id == equipment.Id))
+        if (_context.Equipment.Any(item => item.Id == equipment.Id))
         {
             throw new InvalidOperationException(
                 $"Equipment with ID {equipment.Id} already exists.");
         }
 
-        if (_equipment.Any(item =>
+        if (_context.Equipment.Any(item =>
             item.EquipmentCode == equipment.EquipmentCode))
         {
             throw new InvalidOperationException(
                 $"Equipment code {equipment.EquipmentCode} already exists.");
         }
 
-        _equipment.Add(equipment);
+        _context.Equipment.Add(equipment);
+        _context.SaveChanges();
     }
 
     public IReadOnlyList<Equipment> GetAllEquipment()
     {
-        return _equipment.AsReadOnly();
+        return _context.Equipment
+            .AsNoTracking()
+            .ToList()
+            .AsReadOnly();
     }
 
     public Equipment? GetEquipmentById(int id)
     {
-        return _equipment.FirstOrDefault(item => item.Id == id);
+        return _context.Equipment
+            .AsNoTracking()
+            .FirstOrDefault(item => item.Id == id);
     }
 
+    // public bool RemoveEquipment(int id)
+    // {
+    //     Equipment? equipment = GetEquipmentById(id);
+
+    //     if (equipment is null)
+    //     {
+    //         return false;
+    //     }
+
+    //     _context.Equipment.Remove(equipment);
+    //     _context.SaveChanges();
+
+    //     return true;
+    // }
     public bool RemoveEquipment(int id)
     {
-        Equipment? equipment = GetEquipmentById(id);
+        Equipment? equipment = _context.Equipment
+            .FirstOrDefault(item => item.Id == id);
 
         if (equipment is null)
         {
             return false;
         }
 
-        _equipment.Remove(equipment);
+        _context.Equipment.Remove(equipment);
+        _context.SaveChanges();
+
         return true;
     }
 }
