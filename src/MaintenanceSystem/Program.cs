@@ -94,7 +94,7 @@ catch (InvalidOperationException ex)
 MaintenanceRequestService requestService =
     new MaintenanceRequestService(dbContext, service);
 
-SparePartService sparePartService = new SparePartService();
+SparePartService sparePartService = new SparePartService(dbContext);
 
 // Create a request for the CNC machine
 Console.WriteLine("\nCreate maintenance requests:");

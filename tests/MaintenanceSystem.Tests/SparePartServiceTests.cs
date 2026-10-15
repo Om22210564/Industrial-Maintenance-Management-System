@@ -1,15 +1,34 @@
-
+using MaintenanceSystem.Data;
 using MaintenanceSystem.Models;
 using MaintenanceSystem.Services;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace MaintenanceSystem.Tests;
 
-public class SparePartServiceTests
+public class SparePartServiceTests : IDisposable
 {
-    private static SparePartService CreateService()
+    private readonly SqliteConnection _connection;
+    private readonly MaintenanceDbContext _dbContext;
+
+    public SparePartServiceTests()
     {
-        SparePartService service = new SparePartService();
+        _connection = new SqliteConnection("Data Source=:memory:");
+        _connection.Open();
+
+        DbContextOptions<MaintenanceDbContext> options =
+            new DbContextOptionsBuilder<MaintenanceDbContext>()
+                .UseSqlite(_connection)
+                .Options;
+
+        _dbContext = new MaintenanceDbContext(options);
+        _dbContext.Database.EnsureCreated();
+    }
+
+    private SparePartService CreateService()
+    {
+        SparePartService service = new SparePartService(_dbContext);
 
         service.AddSparePart(new SparePart(
             1, "BRG-001", "Ball Bearing",
@@ -104,5 +123,11 @@ public class SparePartServiceTests
         Assert.Single(lowStockParts);
         Assert.Equal("BRG-001", lowStockParts[0].PartNumber);
         Assert.Equal(2, lowStockParts[0].QuantityInStock);
+    }
+
+    public void Dispose()
+    {
+        _dbContext.Dispose();
+        _connection.Dispose();
     }
 }

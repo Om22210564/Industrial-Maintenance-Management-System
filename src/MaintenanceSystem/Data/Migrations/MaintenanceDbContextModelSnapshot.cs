@@ -73,6 +73,39 @@ namespace MaintenanceSystem.Data.Migrations
                     b.ToTable("MaintenanceRequests");
                 });
 
+            modelBuilder.Entity("MaintenanceSystem.Models.SparePart", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MinimumStockLevel")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PartNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("QuantityInStock")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PartNumber")
+                        .IsUnique();
+
+                    b.ToTable("SpareParts");
+                });
+
             modelBuilder.Entity("MaintenanceSystem.Models.WorkOrder", b =>
                 {
                     b.Property<int>("Id")
@@ -106,6 +139,24 @@ namespace MaintenanceSystem.Data.Migrations
                     b.ToTable("WorkOrders");
                 });
 
+            modelBuilder.Entity("MaintenanceSystem.Models.WorkOrderPart", b =>
+                {
+                    b.Property<int>("WorkOrderId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SparePartId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("QuantityUsed")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("WorkOrderId", "SparePartId");
+
+                    b.HasIndex("SparePartId");
+
+                    b.ToTable("WorkOrderParts");
+                });
+
             modelBuilder.Entity("MaintenanceSystem.Models.MaintenanceRequest", b =>
                 {
                     b.HasOne("MaintenanceSystem.Models.Equipment", null)
@@ -120,6 +171,21 @@ namespace MaintenanceSystem.Data.Migrations
                     b.HasOne("MaintenanceSystem.Models.MaintenanceRequest", null)
                         .WithMany()
                         .HasForeignKey("MaintenanceRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MaintenanceSystem.Models.WorkOrderPart", b =>
+                {
+                    b.HasOne("MaintenanceSystem.Models.SparePart", null)
+                        .WithMany()
+                        .HasForeignKey("SparePartId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MaintenanceSystem.Models.WorkOrder", null)
+                        .WithMany()
+                        .HasForeignKey("WorkOrderId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

@@ -44,7 +44,7 @@ public class WorkOrderServiceTests : IDisposable
         requestService.CreateRequest(
             1, "Abnormal noise detected");
 
-        sparePartService = new SparePartService();
+        sparePartService = new SparePartService(_dbContext);
 
         sparePartService.AddSparePart(new SparePart(
             1, "BRG-001", "Ball Bearing",

@@ -1,41 +1,50 @@
-
+using MaintenanceSystem.Data;
 using MaintenanceSystem.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace MaintenanceSystem.Services;
 
 public class SparePartService
 {
-    private readonly List<SparePart> _spareParts = new();
+    private readonly MaintenanceDbContext _context;
+
+    public SparePartService(MaintenanceDbContext context)
+    {
+        _context = context;
+    }
 
     public void AddSparePart(SparePart sparePart)
     {
-        if (_spareParts.Any(part => part.Id == sparePart.Id))
+        if (_context.SpareParts.Any(part => part.Id == sparePart.Id))
         {
             throw new InvalidOperationException(
                 $"Spare part with ID {sparePart.Id} already exists.");
         }
 
-        if (_spareParts.Any(part =>
-            string.Equals(
-                part.PartNumber,
-                sparePart.PartNumber,
-                StringComparison.OrdinalIgnoreCase)))
+        if (_context.SpareParts.Any(part =>
+            part.PartNumber.ToLower() == sparePart.PartNumber.ToLower()))
         {
             throw new InvalidOperationException(
                 $"Part number {sparePart.PartNumber} already exists.");
         }
 
-        _spareParts.Add(sparePart);
+        _context.SpareParts.Add(sparePart);
+        _context.SaveChanges();
     }
 
     public IReadOnlyList<SparePart> GetAllSpareParts()
     {
-        return _spareParts.AsReadOnly();
+        return _context.SpareParts
+            .AsNoTracking()
+            .OrderBy(part => part.Id)
+            .ToList()
+            .AsReadOnly();
     }
 
     public SparePart? GetSparePartById(int id)
     {
-        return _spareParts.FirstOrDefault(part => part.Id == id);
+        return _context.SpareParts
+            .FirstOrDefault(part => part.Id == id);
     }
 
     public bool IssuePart(int partId, int quantity)
@@ -62,6 +71,8 @@ public class SparePartService
         }
 
         part.ReduceStock(quantity);
+        _context.SaveChanges();
+
         return true;
     }
 
@@ -88,14 +99,17 @@ public class SparePartService
         }
 
         part.IncreaseStock(quantity);
+        _context.SaveChanges();
+
         return true;
     }
 
     public IReadOnlyList<SparePart> GetLowStockParts()
     {
-        return _spareParts
-            .Where(part =>
-                part.QuantityInStock <= part.MinimumStockLevel)
+        return _context.SpareParts
+            .AsNoTracking()
+            .Where(part => part.QuantityInStock <= part.MinimumStockLevel)
+            .OrderBy(part => part.Id)
             .ToList()
             .AsReadOnly();
     }

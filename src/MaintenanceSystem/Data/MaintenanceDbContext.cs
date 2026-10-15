@@ -17,6 +17,10 @@ public class MaintenanceDbContext : DbContext
 
     public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>();
 
+    public DbSet<SparePart> SpareParts => Set<SparePart>();
+
+    public DbSet<WorkOrderPart> WorkOrderParts => Set<WorkOrderPart>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -90,6 +94,46 @@ public class MaintenanceDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(workOrder => workOrder.MaintenanceRequestId)
                 .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<SparePart>(entity =>
+        {
+            entity.HasKey(part => part.Id);
+
+            entity.Property(part => part.Id)
+                .ValueGeneratedNever();
+
+            entity.Property(part => part.PartNumber)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(part => part.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(part => part.UnitCost)
+                .HasPrecision(10, 2);
+
+            entity.HasIndex(part => part.PartNumber)
+                .IsUnique();
+        });
+
+        modelBuilder.Entity<WorkOrderPart>(entity =>
+        {
+            entity.HasKey(part => new
+            {
+                part.WorkOrderId,
+                part.SparePartId
+            });
+
+            entity.HasOne<WorkOrder>()
+                .WithMany()
+                .HasForeignKey(part => part.WorkOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<SparePart>()
+                .WithMany()
+                .HasForeignKey(part => part.SparePartId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }
