@@ -80,7 +80,7 @@ catch (InvalidOperationException ex)
 
 // Create the maintenance request service
 MaintenanceRequestService requestService =
-    new MaintenanceRequestService(service);
+    new MaintenanceRequestService(dbContext, service);
 
 SparePartService sparePartService = new SparePartService();
 

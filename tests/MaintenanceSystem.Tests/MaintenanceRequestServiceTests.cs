@@ -38,7 +38,7 @@ public class MaintenanceRequestServiceTests : IDisposable
             2, "Water Pump", "PUMP-001",
             "Factory Floor B", EquipmentStatus.UnderMaintenance));
 
-        return new MaintenanceRequestService(equipmentService);
+        return new MaintenanceRequestService(_dbContext,equipmentService);
     }
 
     public void Dispose()

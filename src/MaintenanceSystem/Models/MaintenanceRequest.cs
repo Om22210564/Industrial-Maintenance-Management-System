@@ -44,4 +44,8 @@ public class MaintenanceRequest
         CreatedAt = DateTime.Now;
         Status = MaintenanceRequestStatus.Open;
     }
+    private MaintenanceRequest()
+    {
+        Description = string.Empty;
+    }
 }

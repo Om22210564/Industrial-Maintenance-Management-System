@@ -12,6 +12,9 @@ public class MaintenanceDbContext : DbContext
     }
 
     public DbSet<Equipment> Equipment => Set<Equipment>();
+    public DbSet<MaintenanceRequest> MaintenanceRequests =>
+    Set<MaintenanceRequest>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,6 +39,30 @@ public class MaintenanceDbContext : DbContext
             // Your existing code assigns IDs manually.
             entity.Property(e => e.Id)
                 .ValueGeneratedNever();
+        });
+        
+        modelBuilder.Entity<MaintenanceRequest>(entity =>
+        {
+            entity.HasKey(request => request.Id);
+
+            entity.Property(request => request.Id)
+                .ValueGeneratedNever();
+
+            entity.Property(request => request.Description)
+                .IsRequired()
+                .HasMaxLength(1000);
+
+            entity.Property(request => request.CreatedAt)
+                .IsRequired();
+
+            entity.Property(request => request.Status)
+                .IsRequired();
+
+            entity.HasOne<Equipment>()
+                .WithMany()
+                .HasForeignKey(request => request.EquipmentId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

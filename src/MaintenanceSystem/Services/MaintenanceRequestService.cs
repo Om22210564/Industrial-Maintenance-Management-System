@@ -1,22 +1,22 @@
+using MaintenanceSystem.Data;
 using MaintenanceSystem.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace MaintenanceSystem.Services;
 
 public class MaintenanceRequestService
 {
-    private readonly List<MaintenanceRequest> _requests = new();
+    private readonly MaintenanceDbContext _context;
     private readonly EquipmentService _equipmentService;
-    //This field stores a reference to the existing equipment service. The constructor receives that service:
-
-
-    private int _nextRequestId = 1;
 
     public MaintenanceRequestService(
+        MaintenanceDbContext context,
         EquipmentService equipmentService)
     {
+        _context = context;
         _equipmentService = equipmentService;
     }
-    //This means the request service doesn't create another equipment list. Both services work with the same equipment service instance when we pass it in from Program.cs.
+
     public MaintenanceRequest CreateRequest(
         int equipmentId,
         string description)
@@ -30,43 +30,52 @@ public class MaintenanceRequestService
                 $"Equipment with ID {equipmentId} does not exist.");
         }
 
+        int nextRequestId = _context.MaintenanceRequests.Any()
+            ? _context.MaintenanceRequests.Max(request => request.Id) + 1
+            : 1;
+
         MaintenanceRequest request = new MaintenanceRequest(
-            _nextRequestId,
+            nextRequestId,
             equipmentId,
             description);
 
-        _requests.Add(request);
-        _nextRequestId++;
+        _context.MaintenanceRequests.Add(request);
+        _context.SaveChanges();
 
         return request;
     }
 
     public IReadOnlyList<MaintenanceRequest> GetAllRequests()
     {
-        return _requests.AsReadOnly();
+        return _context.MaintenanceRequests
+            .AsNoTracking()
+            .OrderBy(request => request.Id)
+            .ToList()
+            .AsReadOnly();
     }
 
     public IReadOnlyList<MaintenanceRequest>
         GetRequestsByEquipmentId(int equipmentId)
     {
-        return _requests
+        return _context.MaintenanceRequests
+            .AsNoTracking()
             .Where(request => request.EquipmentId == equipmentId)
+            .OrderBy(request => request.Id)
             .ToList()
             .AsReadOnly();
     }
 
     public MaintenanceRequest? GetRequestById(int requestId)
     {
-        return _requests.FirstOrDefault(
-            request => request.Id == requestId);
+        return _context.MaintenanceRequests
+            .FirstOrDefault(request => request.Id == requestId);
     }
 
     public bool UpdateRequestStatus(
         int requestId,
         MaintenanceRequestStatus status)
     {
-        MaintenanceRequest? request =
-            GetRequestById(requestId);
+        MaintenanceRequest? request = GetRequestById(requestId);
 
         if (request is null)
         {
@@ -74,6 +83,8 @@ public class MaintenanceRequestService
         }
 
         request.Status = status;
+        _context.SaveChanges();
+
         return true;
     }
 }

@@ -36,7 +36,7 @@ public class WorkOrderServiceTests : IDisposable
             "Factory Floor A", EquipmentStatus.Operational));
 
         requestService = new MaintenanceRequestService(
-            equipmentService);
+            _dbContext,equipmentService);
 
         requestService.CreateRequest(
             1, "Unusual vibration detected");
