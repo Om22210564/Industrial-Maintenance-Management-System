@@ -8,6 +8,10 @@ public class WorkOrderPart
 
     public int QuantityUsed { get; private set; }
 
+    private WorkOrderPart()
+    {
+    }
+
     public WorkOrderPart(
         int workOrderId,
         int sparePartId,
@@ -37,5 +41,23 @@ public class WorkOrderPart
         WorkOrderId = workOrderId;
         SparePartId = sparePartId;
         QuantityUsed = quantityUsed;
+    }
+
+    internal void AddQuantity(int quantity)
+    {
+        if (quantity <= 0)
+        {
+            throw new ArgumentException(
+                "Quantity must be greater than zero.",
+                nameof(quantity));
+        }
+
+        if (quantity > int.MaxValue - QuantityUsed)
+        {
+            throw new InvalidOperationException(
+                "Total quantity used would exceed the maximum supported quantity.");
+        }
+
+        QuantityUsed += quantity;
     }
 }

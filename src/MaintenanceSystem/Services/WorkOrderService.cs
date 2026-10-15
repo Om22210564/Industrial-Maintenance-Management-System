@@ -12,7 +12,6 @@ public class WorkOrderService
     private readonly SparePartService _sparePartService;
 
     // Part usage remains in memory for now.
-    private readonly List<WorkOrderPart> _workOrderParts = new();
 
     public WorkOrderService(
         MaintenanceDbContext context,
@@ -156,33 +155,44 @@ public class WorkOrderService
     }
 
     public WorkOrderPart IssuePartToWorkOrder(
-        int workOrderId,
-        int sparePartId,
-        int quantity)
+    int workOrderId,
+    int sparePartId,
+    int quantity)
+{
+    WorkOrder? workOrder = GetWorkOrderById(workOrderId);
+
+    if (workOrder is null)
     {
-        WorkOrder? workOrder = GetWorkOrderById(workOrderId);
+        throw new InvalidOperationException(
+            $"Work order with ID {workOrderId} does not exist.");
+    }
 
-        if (workOrder is null)
-        {
-            throw new InvalidOperationException(
-                $"Work order with ID {workOrderId} does not exist.");
-        }
+    if (workOrder.Status != WorkOrderStatus.InProgress)
+    {
+        throw new InvalidOperationException(
+            "Parts can only be issued to an in-progress work order.");
+    }
 
-        if (workOrder.Status != WorkOrderStatus.InProgress)
-        {
-            throw new InvalidOperationException(
-                "Parts can only be issued to an in-progress work order.");
-        }
+    if (quantity <= 0)
+    {
+        throw new ArgumentException(
+            "Issue quantity must be greater than zero.",
+            nameof(quantity));
+    }
 
-        SparePart? sparePart =
-            _sparePartService.GetSparePartById(sparePartId);
+    SparePart? sparePart =
+        _sparePartService.GetSparePartById(sparePartId);
 
-        if (sparePart is null)
-        {
-            throw new InvalidOperationException(
-                $"Spare part with ID {sparePartId} does not exist.");
-        }
+    if (sparePart is null)
+    {
+        throw new InvalidOperationException(
+            $"Spare part with ID {sparePartId} does not exist.");
+    }
 
+    using var transaction = _context.Database.BeginTransaction();
+
+    try
+    {
         bool issued =
             _sparePartService.IssuePart(sparePartId, quantity);
 
@@ -192,22 +202,48 @@ public class WorkOrderService
                 $"Could not issue spare part {sparePartId}.");
         }
 
-        WorkOrderPart usage = new WorkOrderPart(
-            workOrderId,
-            sparePartId,
-            quantity);
+        WorkOrderPart? usage = _context.WorkOrderParts
+            .FirstOrDefault(part =>
+                part.WorkOrderId == workOrderId &&
+                part.SparePartId == sparePartId);
 
-        _workOrderParts.Add(usage);
+        if (usage is null)
+        {
+            usage = new WorkOrderPart(
+                workOrderId,
+                sparePartId,
+                quantity);
+
+            _context.WorkOrderParts.Add(usage);
+        }
+        else
+        {
+            usage.AddQuantity(quantity);
+        }
+
+        _context.SaveChanges();
+        transaction.Commit();
 
         return usage;
     }
-
-    public IReadOnlyList<WorkOrderPart> GetPartsUsedByWorkOrder(
-        int workOrderId)
+    catch
     {
-        return _workOrderParts
-            .Where(part => part.WorkOrderId == workOrderId)
-            .ToList()
-            .AsReadOnly();
+        transaction.Rollback();
+
+        // Discard tracked changes that may no longer match the database.
+        _context.ChangeTracker.Clear();
+
+        throw;
     }
+}
+public IReadOnlyList<WorkOrderPart> GetPartsUsedByWorkOrder(
+    int workOrderId)
+{
+    return _context.WorkOrderParts
+        .AsNoTracking()
+        .Where(part => part.WorkOrderId == workOrderId)
+        .OrderBy(part => part.SparePartId)
+        .ToList()
+        .AsReadOnly();
+}
 }
