@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MaintenanceSystem.Services;
 
-public class EquipmentService
+public class EquipmentService : IEquipmentService
 {
     private readonly MaintenanceDbContext _context;
 

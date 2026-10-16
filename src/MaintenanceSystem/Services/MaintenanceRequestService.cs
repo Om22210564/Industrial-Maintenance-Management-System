@@ -4,14 +4,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MaintenanceSystem.Services;
 
-public class MaintenanceRequestService
+public class MaintenanceRequestService : IMaintenanceRequestService
 {
     private readonly MaintenanceDbContext _context;
-    private readonly EquipmentService _equipmentService;
+    private readonly IEquipmentService _equipmentService;
 
     public MaintenanceRequestService(
-        MaintenanceDbContext context,
-        EquipmentService equipmentService)
+    MaintenanceDbContext context,
+    IEquipmentService equipmentService)
     {
         _context = context;
         _equipmentService = equipmentService;

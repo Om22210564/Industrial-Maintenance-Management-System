@@ -27,8 +27,8 @@ var services = new ServiceCollection();
 services.AddDbContext<MaintenanceDbContext>(options =>
     options.UseSqlite("Data Source=maintenance.db"));
 
-services.AddScoped<EquipmentService>();
-services.AddScoped<MaintenanceRequestService>();
+services.AddScoped<IEquipmentService, EquipmentService>();
+services.AddScoped<IMaintenanceRequestService, MaintenanceRequestService>();
 services.AddScoped<SparePartService>();
 services.AddScoped<WorkOrderService>();
 
@@ -46,8 +46,8 @@ MaintenanceDbContext dbContext =
 dbContext.Database.Migrate();
 
 // Resolve the equipment service from the container.
-EquipmentService service =
-    provider.GetRequiredService<EquipmentService>();
+IEquipmentService service =
+    provider.GetRequiredService<IEquipmentService>();
 
 Equipment cnc = new Equipment(
     1, "CNC Machine", "CNC-001",
@@ -123,8 +123,8 @@ catch (InvalidOperationException ex)
     Console.WriteLine($"Rejected: {ex.Message}");
 }
 
-MaintenanceRequestService requestService =
-    provider.GetRequiredService<MaintenanceRequestService>();
+IMaintenanceRequestService requestService =
+    provider.GetRequiredService<IMaintenanceRequestService>();
 
 SparePartService sparePartService =
     provider.GetRequiredService<SparePartService>();

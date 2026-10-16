@@ -8,18 +8,18 @@ namespace MaintenanceSystem.Services;
 public class WorkOrderService
 {
     private readonly MaintenanceDbContext _context;
-    private readonly MaintenanceRequestService _requestService;
+    private readonly IMaintenanceRequestService _maintenanceRequestService;
     private readonly SparePartService _sparePartService;
 
     // Part usage remains in memory for now.
 
     public WorkOrderService(
         MaintenanceDbContext context,
-        MaintenanceRequestService requestService,
+        IMaintenanceRequestService maintenanceRequestService,
         SparePartService sparePartService)
     {
         _context = context;
-        _requestService = requestService;
+        _maintenanceRequestService = maintenanceRequestService;
         _sparePartService = sparePartService;
     }
 
@@ -28,7 +28,7 @@ public class WorkOrderService
         string description)
     {
         MaintenanceRequest? request =
-            _requestService.GetRequestById(maintenanceRequestId);
+            _maintenanceRequestService.GetRequestById(maintenanceRequestId);
 
         if (request is null)
         {
