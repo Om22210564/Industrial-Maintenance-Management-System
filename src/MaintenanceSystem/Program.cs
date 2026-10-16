@@ -1,19 +1,53 @@
-﻿using MaintenanceSystem.Data;
+﻿using Microsoft.Extensions.DependencyInjection;
+// using MaintenanceSystem.Data;
+// using MaintenanceSystem.Models;
+// using MaintenanceSystem.Services;
+// using Microsoft.EntityFrameworkCore;
+
+// DbContextOptions<MaintenanceDbContext> options =
+//     new DbContextOptionsBuilder<MaintenanceDbContext>()
+//         .UseSqlite("Data Source=maintenance.db")
+//         .Options;
+
+// using MaintenanceDbContext dbContext =
+//     new MaintenanceDbContext(options);
+
+// dbContext.Database.Migrate();
+
+// EquipmentService service = new EquipmentService(dbContext);
+using MaintenanceSystem.Data;
 using MaintenanceSystem.Models;
 using MaintenanceSystem.Services;
 using Microsoft.EntityFrameworkCore;
 
-DbContextOptions<MaintenanceDbContext> options =
-    new DbContextOptionsBuilder<MaintenanceDbContext>()
-        .UseSqlite("Data Source=maintenance.db")
-        .Options;
 
-using MaintenanceDbContext dbContext =
-    new MaintenanceDbContext(options);
+// Register application services and database configuration.
+var services = new ServiceCollection();
+
+services.AddDbContext<MaintenanceDbContext>(options =>
+    options.UseSqlite("Data Source=maintenance.db"));
+
+services.AddScoped<EquipmentService>();
+services.AddScoped<MaintenanceRequestService>();
+services.AddScoped<SparePartService>();
+services.AddScoped<WorkOrderService>();
+
+// Build the dependency injection container.
+using ServiceProvider serviceProvider = services.BuildServiceProvider();
+
+using IServiceScope scope = serviceProvider.CreateScope();
+
+var provider = scope.ServiceProvider;
+
+// Apply pending database migrations.
+MaintenanceDbContext dbContext =
+    provider.GetRequiredService<MaintenanceDbContext>();
 
 dbContext.Database.Migrate();
 
-EquipmentService service = new EquipmentService(dbContext);
+// Resolve the equipment service from the container.
+EquipmentService service =
+    provider.GetRequiredService<EquipmentService>();
 
 Equipment cnc = new Equipment(
     1, "CNC Machine", "CNC-001",
@@ -89,12 +123,11 @@ catch (InvalidOperationException ex)
     Console.WriteLine($"Rejected: {ex.Message}");
 }
 
-
-// Create the maintenance request service
 MaintenanceRequestService requestService =
-    new MaintenanceRequestService(dbContext, service);
+    provider.GetRequiredService<MaintenanceRequestService>();
 
-SparePartService sparePartService = new SparePartService(dbContext);
+SparePartService sparePartService =
+    provider.GetRequiredService<SparePartService>();
 
 // Create a request for the CNC machine
 Console.WriteLine("\nCreate maintenance requests:");
@@ -173,12 +206,8 @@ Console.WriteLine(missingRequest is null
     : $"Found: {missingRequest.Description}");
 
 
-// Create the work order service
 WorkOrderService workOrderService =
-    new WorkOrderService(
-        dbContext,
-        requestService,
-        sparePartService);
+    provider.GetRequiredService<WorkOrderService>();
 
 // Create work orders for existing maintenance requests
 Console.WriteLine("\nCreate work orders:");
@@ -233,10 +262,12 @@ Console.WriteLine(started
     ? $"Work order {cncWorkOrder.Id} is now InProgress."
     : "Work order not found.");
 
-// Register spare parts
-sparePartService.AddSparePart(new SparePart(
-    1, "BRG-001", "Ball Bearing",
-    5, 2, 12.50m));
+if (sparePartService.GetSparePartById(1) is null)
+{
+    sparePartService.AddSparePart(new SparePart(
+        1, "BRG-001", "Ball Bearing",
+        5, 2, 12.50m));
+}
 
 // Issue two bearings to the CNC work order
 WorkOrderPart usage = workOrderService.IssuePartToWorkOrder(
