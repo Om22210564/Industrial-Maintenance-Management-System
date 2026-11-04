@@ -71,7 +71,7 @@ public class SparePart
         MinimumStockLevel = minimumStockLevel;
         UnitCost = unitCost;
     }
-
+    // The below setters can be used to change the private fields of obj but "internal" makes them allowed within the same assembly and cannot be accessed by other project
     internal void ReduceStock(int quantity)
     {
         QuantityInStock -= quantity;

@@ -29,7 +29,7 @@ services.AddDbContext<MaintenanceDbContext>(options =>
 
 services.AddScoped<IEquipmentService, EquipmentService>();
 services.AddScoped<IMaintenanceRequestService, MaintenanceRequestService>();
-services.AddScoped<SparePartService>();
+services.AddScoped<ISparePartService, SparePartService>();
 services.AddScoped<WorkOrderService>();
 
 // Build the dependency injection container.
@@ -126,8 +126,8 @@ catch (InvalidOperationException ex)
 IMaintenanceRequestService requestService =
     provider.GetRequiredService<IMaintenanceRequestService>();
 
-SparePartService sparePartService =
-    provider.GetRequiredService<SparePartService>();
+ISparePartService sparePartService =
+    provider.GetRequiredService<ISparePartService>();
 
 // Create a request for the CNC machine
 Console.WriteLine("\nCreate maintenance requests:");

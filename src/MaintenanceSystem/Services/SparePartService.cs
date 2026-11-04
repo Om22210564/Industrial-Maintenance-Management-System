@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MaintenanceSystem.Services;
 
-public class SparePartService
+public class SparePartService : ISparePartService
 {
     private readonly MaintenanceDbContext _context;
 

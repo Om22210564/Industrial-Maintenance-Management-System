@@ -8,9 +8,11 @@ public class Equipment
     public string? EquipmentCode {get;private set;}
     public string? Location {get;set;}
     public EquipmentStatus Status{get;set;}
-    private Equipment()
+    private Equipment()// private parameterless constructor : it creates an obj without requiring any values.
     {
     }
+    //A private parameterless constructor is often used when working with Entity Framework Core (EF Core), an object-relational mapper used to store and retrieve objects from a database
+    // EF Core can call it even though it is private.
     public Equipment(int id, string name, string equipmentcode,string location ,EquipmentStatus status)
     {
         if (string.IsNullOrWhiteSpace(name))
