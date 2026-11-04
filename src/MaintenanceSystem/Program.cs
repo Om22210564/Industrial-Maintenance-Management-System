@@ -30,7 +30,7 @@ services.AddDbContext<MaintenanceDbContext>(options =>
 services.AddScoped<IEquipmentService, EquipmentService>();
 services.AddScoped<IMaintenanceRequestService, MaintenanceRequestService>();
 services.AddScoped<ISparePartService, SparePartService>();
-services.AddScoped<WorkOrderService>();
+services.AddScoped<IWorkOrderService, WorkOrderService>();
 
 // Build the dependency injection container.
 using ServiceProvider serviceProvider = services.BuildServiceProvider();
@@ -206,8 +206,8 @@ Console.WriteLine(missingRequest is null
     : $"Found: {missingRequest.Description}");
 
 
-WorkOrderService workOrderService =
-    provider.GetRequiredService<WorkOrderService>();
+IWorkOrderService workOrderService =
+    provider.GetRequiredService<IWorkOrderService>();
 
 // Create work orders for existing maintenance requests
 Console.WriteLine("\nCreate work orders:");

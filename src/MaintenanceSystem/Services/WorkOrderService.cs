@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MaintenanceSystem.Services;
 
-public class WorkOrderService
+public class WorkOrderService : IWorkOrderService
 {
     private readonly MaintenanceDbContext _context;
     private readonly IMaintenanceRequestService _maintenanceRequestService;
