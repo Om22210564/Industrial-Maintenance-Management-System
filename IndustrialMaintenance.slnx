@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/MaintenanceSystem.Api/MaintenanceSystem.Api.csproj" />
     <Project Path="src/MaintenanceSystem/MaintenanceSystem.csproj" />
   </Folder>
   <Folder Name="/tests/">

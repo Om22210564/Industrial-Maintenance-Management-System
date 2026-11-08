@@ -1,20 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-// using MaintenanceSystem.Data;
-// using MaintenanceSystem.Models;
-// using MaintenanceSystem.Services;
-// using Microsoft.EntityFrameworkCore;
-
-// DbContextOptions<MaintenanceDbContext> options =
-//     new DbContextOptionsBuilder<MaintenanceDbContext>()
-//         .UseSqlite("Data Source=maintenance.db")
-//         .Options;
-
-// using MaintenanceDbContext dbContext =
-//     new MaintenanceDbContext(options);
-
-// dbContext.Database.Migrate();
-
-// EquipmentService service = new EquipmentService(dbContext);
 using MaintenanceSystem.Data;
 using MaintenanceSystem.Models;
 using MaintenanceSystem.Services;
